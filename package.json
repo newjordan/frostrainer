@@ -1,0 +1,10 @@
+{
+  "name": "cpu-coach-harness",
+  "version": "0.1.0",
+  "description": "Portable CPU coaching harness for FEN-in, UCI-out chess engines.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "cpu-coach-harness": "./coach_harness.mjs"
+  }
+}

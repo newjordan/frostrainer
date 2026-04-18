@@ -27,7 +27,7 @@ function printUsage() {
   console.log(`CPU Coach Harness
 
 Usage:
-  node cpu_coach_harness/coach_harness.mjs --student <engine> --opponent <engine> [--opponent <engine> ...] [options]
+  node coach_harness.mjs --student <engine> --opponent <engine> [--opponent <engine> ...] [options]
 
 Required:
   --student <engine>           Student engine path or command name.
@@ -42,20 +42,24 @@ Optional:
   --coach-timeout-ms <ms>      Coach move timeout. Default: 2000
   --max-ply <n>                Max plies per game. Default: 200
   --start-fen <fen>            Starting position. Default: standard start
-  --out-dir <dir>              Output directory. Default: cpu_coach_harness/out
+  --out-dir <dir>              Output directory. Default: ./out
   --prefix <name>              Output file prefix. Default: student label
+  --student-mode <mode>        Engine load mode for student: auto|spawn|compiled. Default: auto
+  --opponent-mode <mode>       Engine load mode for opponents: auto|spawn|compiled. Default: auto
+  --coach-mode <mode>          Engine load mode for coach: auto|spawn|compiled. Default: auto
   --help                       Show this message
 
 Named engines:
   label=path/to/engine.js      Override the engine label shown in reports.
 
 Examples:
-  node cpu_coach_harness/coach_harness.mjs \\
+  node coach_harness.mjs \\
     --student student=variants/razor_x.js \\
     --opponent titan=trainers/titan/agent.js \\
     --opponent colossus=trainers/colossus/agent.js \\
     --coach lozza=trainers/lozza/agent.js \\
-    --games 4 --cycles 2
+    --games 4 --cycles 2 \\
+    --student-mode auto --opponent-mode auto --coach-mode spawn
 `);
 }
 
@@ -75,6 +79,12 @@ function splitList(value) {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parseEngineMode(value, flagName) {
+  const mode = String(value || '').trim().toLowerCase();
+  if (mode === 'auto' || mode === 'spawn' || mode === 'compiled') return mode;
+  fail(`Invalid value for ${flagName}: ${value}. Expected one of: auto, spawn, compiled`);
 }
 
 function slugify(value) {
@@ -135,8 +145,11 @@ function parseArgs(argv) {
     coachTimeoutMs: 2000,
     maxPly: 200,
     startFen: START_FEN,
-    outDir: resolve(process.cwd(), 'cpu_coach_harness', 'out'),
+    outDir: resolve(process.cwd(), 'out'),
     prefix: '',
+    studentMode: 'auto',
+    opponentMode: 'auto',
+    coachMode: 'auto',
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -168,6 +181,12 @@ function parseArgs(argv) {
       options.outDir = resolve(process.cwd(), argv[++i] || '');
     } else if (arg === '--prefix') {
       options.prefix = argv[++i] || '';
+    } else if (arg === '--student-mode') {
+      options.studentMode = parseEngineMode(argv[++i], '--student-mode');
+    } else if (arg === '--opponent-mode') {
+      options.opponentMode = parseEngineMode(argv[++i], '--opponent-mode');
+    } else if (arg === '--coach-mode') {
+      options.coachMode = parseEngineMode(argv[++i], '--coach-mode');
     } else {
       fail(`Unknown flag: ${arg}`);
     }
@@ -254,22 +273,50 @@ function canUseProbeMove(move, fen) {
   return legalMoves.includes(move);
 }
 
-function loadEngine(spec, timeoutMs, preferCompile = true, probeFen = START_FEN) {
-  if (preferCompile && shouldAttemptCompile(spec)) {
-    resetAgentCache(spec.filePath);
-    const fn = compileAgent(spec.filePath, { forceReload: true });
-    if (fn) {
-      const probe = getMoveFromFn(fn, probeFen);
-      if (canUseProbeMove(probe.move, probeFen)) {
-        return {
-          ...spec,
-          mode: 'compiled',
-          getMove(fen) {
-            return getMoveFromFn(fn, fen);
-          },
-        };
-      }
+function getCompiledEngine(spec, probeFen = START_FEN) {
+  if (!shouldAttemptCompile(spec)) return null;
+  resetAgentCache(spec.filePath);
+  const fn = compileAgent(spec.filePath, { forceReload: true });
+  if (!fn) return null;
+  const probe = getMoveFromFn(fn, probeFen);
+  if (!canUseProbeMove(probe.move, probeFen)) return null;
+  return fn;
+}
+
+function loadEngine(spec, timeoutMs, mode = 'auto', probeFen = START_FEN, roleName = 'engine') {
+  if (mode === 'spawn') {
+    return {
+      ...spec,
+      mode: 'spawn',
+      getMove(fen) {
+        return runSpawnEngine(spec, fen, timeoutMs);
+      },
+    };
+  }
+
+  if (mode === 'compiled') {
+    const fn = getCompiledEngine(spec, probeFen);
+    if (!fn) {
+      throw new Error(`Cannot load ${roleName} "${spec.label}" in compiled mode. Use spawn/auto or provide a JS engine compatible with compileAgent.`);
     }
+    return {
+      ...spec,
+      mode: 'compiled',
+      getMove(fen) {
+        return getMoveFromFn(fn, fen);
+      },
+    };
+  }
+
+  const fn = getCompiledEngine(spec, probeFen);
+  if (fn) {
+    return {
+      ...spec,
+      mode: 'compiled',
+      getMove(fen) {
+        return getMoveFromFn(fn, fen);
+      },
+    };
   }
 
   return {
@@ -558,6 +605,7 @@ function buildMarkdown(report) {
   lines.push('');
   lines.push('## Engines');
   lines.push('');
+  lines.push(`- Requested modes: student=${report.config.modes.student}, opponent=${report.config.modes.opponent}, coach=${report.config.modes.coach}`);
   lines.push(`- Student: ${report.student.label} (${report.student.mode})`);
   lines.push(`- Coach: ${report.coach.label} (${report.coach.mode})`);
   lines.push(`- Opponents: ${report.opponents.map((item) => `${item.label} (${item.mode})`).join(', ')}`);
@@ -623,6 +671,11 @@ function buildReport(options, student, coach, opponents, games, cycleSummaries, 
       coachTimeoutMs: options.coachTimeoutMs,
       maxPly: options.maxPly,
       startFen: options.startFen,
+      modes: {
+        student: options.studentMode,
+        opponent: options.opponentMode,
+        coach: options.coachMode,
+      },
     },
     student: { label: student.label, mode: student.mode, input: student.input },
     coach: { label: coach.label, mode: coach.mode, input: coach.input },
@@ -660,9 +713,16 @@ function main() {
   console.log(`  games:     ${options.games}`);
   console.log('');
 
-  const student = loadEngine(options.student, options.timeoutMs, true, options.startFen);
-  const coach = loadEngine(options.coach, options.coachTimeoutMs, true, options.startFen);
-  const opponents = options.opponents.map((item) => loadEngine(item, options.timeoutMs, true, options.startFen));
+  let student;
+  let coach;
+  let opponents;
+  try {
+    student = loadEngine(options.student, options.timeoutMs, options.studentMode, options.startFen, 'student');
+    coach = loadEngine(options.coach, options.coachTimeoutMs, options.coachMode, options.startFen, 'coach');
+    opponents = options.opponents.map((item) => loadEngine(item, options.timeoutMs, options.opponentMode, options.startFen, `opponent (${item.label})`));
+  } catch (error) {
+    fail(error?.message || String(error));
+  }
 
   console.log(`Loaded student via ${student.mode}`);
   console.log(`Loaded coach via ${coach.mode}`);

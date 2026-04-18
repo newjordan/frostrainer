@@ -39,11 +39,11 @@ npm run coach:harness -- \
 Or call the harness directly:
 
 ```bash
-node cpu_coach_harness/coach_harness.mjs \
+node coach_harness.mjs \
   --student my_bot=./path/to/agent.js \
   --opponents spar1=./opp_a.js,spar2=./opp_b.js \
   --coach ./path/to/coach.js \
-  --out-dir ./cpu_coach_harness/out
+  --out-dir ./out
 ```
 
 ## Key Flags
@@ -58,6 +58,15 @@ node cpu_coach_harness/coach_harness.mjs \
 - `--coach-timeout-ms <ms>`: coach timeout per move
 - `--out-dir <dir>`: where reports are written
 - `--prefix <name>`: output filename prefix
+- `--student-mode <auto|spawn|compiled>`: student load mode
+- `--opponent-mode <auto|spawn|compiled>`: opponent load mode
+- `--coach-mode <auto|spawn|compiled>`: coach load mode
+
+Mode behavior:
+
+- `auto`: current behavior (attempt compile, fallback to spawn)
+- `spawn`: never attempts compile path
+- `compiled`: requires compile path and fails fast if unavailable
 
 ## Output
 
@@ -73,6 +82,40 @@ The report includes:
 - reviewed positions from losses
 - lesson breakdown by category, phase, and opponent
 - top coaching disagreements
+
+## Private Coaching Lane
+
+Use the lane supervisor for continuous quick loops plus strict deterministic checkpoints.
+
+Run one lane:
+
+```bash
+node scripts/private_coach_lane.mjs \
+  --student student=./engines/fireturd.cjs \
+  --opponent tomitank=./engines/tomitank.js \
+  --coach lozza=./trainers/lozza/agent.js \
+  --prefix private-lane-a \
+  --quick-games 2 \
+  --strict-games 6 \
+  --strict-every 3 \
+  --target-score 0.55 \
+  --strict-student-mode spawn
+```
+
+Aggregate lane summaries:
+
+```bash
+node scripts/lane_aggregate.mjs \
+  --glob './out/*_lane_summary.json' \
+  --out-md ./out/lane_aggregate.md \
+  --out-json ./out/lane_aggregate.json
+```
+
+Lane outputs:
+
+- `<prefix>_lane_progress.md`
+- `<prefix>_lane_summary.json`
+- `<prefix>_lane_final.md`
 
 ## Sharing
 

@@ -6,6 +6,8 @@ ROOT="${ROOT:-$ROOT_DEFAULT}"
 END_LOCAL="${END_LOCAL:-09:00}"
 TZ_LOCAL="${TZ_LOCAL:-America/Chicago}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-20}"
+ONE_PASS_SCRIPT="scripts/fireturd_one_pass.mjs"
+HARNESS_SCRIPT="coach_harness.mjs"
 
 if ! [[ "$SLEEP_BETWEEN" =~ ^[0-9]+$ ]] || [ "$SLEEP_BETWEEN" -le 0 ]; then
   echo "[supervisor] SLEEP_BETWEEN must be a positive integer, got: $SLEEP_BETWEEN" >&2
@@ -32,13 +34,28 @@ active_pass_pid() {
     local pid
     pid=$(grep -Eo '"pid"[[:space:]]*:[[:space:]]*[0-9]+' "$LOCK_FILE" | head -n1 | grep -Eo '[0-9]+' || true)
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      printf '%s\n' "$pid"
+      printf '%s|fireturd_one_pass.lock\n' "$pid"
       return 0
     fi
     rm -f "$LOCK_FILE"
   fi
 
-  pgrep -f "node .*scripts/fireturd_one_pass\\.mjs" | head -n1 || true
+  while IFS=' ' read -r pid _comm cmd; do
+    [ -z "$pid" ] && continue
+    [ "$_comm" = "node" ] || [ "$_comm" = "nodejs" ] || continue
+
+    if [[ "$cmd" == *"$ONE_PASS_SCRIPT"* ]]; then
+      printf '%s|node:%s\n' "$pid" "$ONE_PASS_SCRIPT"
+      return 0
+    fi
+
+    if [[ "$cmd" == *"$HARNESS_SCRIPT"* ]]; then
+      printf '%s|node:%s\n' "$pid" "$HARNESS_SCRIPT"
+      return 0
+    fi
+  done < <(ps -eo pid=,comm=,args=)
+
+  return 1
 }
 
 END_EPOCH="$(compute_end_epoch)"
@@ -49,12 +66,19 @@ printf '{"startedUtc":"%s","targetEndLocal":"%s %s","endEpoch":%s,"sleepBetweenS
 echo "[supervisor] started at $STARTED_UTC, end epoch=$END_EPOCH ($END_LOCAL $TZ_LOCAL)"
 
 while [ "$(date +%s)" -lt "$END_EPOCH" ]; do
-  ACTIVE_PID="$(active_pass_pid)"
+  ACTIVE_INFO="$(active_pass_pid || true)"
+  ACTIVE_PID=""
+  ACTIVE_KIND=""
+  if [ -n "$ACTIVE_INFO" ]; then
+    ACTIVE_PID="${ACTIVE_INFO%%|*}"
+    ACTIVE_KIND="${ACTIVE_INFO#*|}"
+  fi
+
   if [ -n "$ACTIVE_PID" ]; then
     NOW_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    printf '{"startedUtc":"%s","targetEndLocal":"%s %s","endEpoch":%s,"sleepBetweenSeconds":%s,"root":"%s","lastStatus":"waiting-active","activePid":%s,"updatedUtc":"%s"}\n' \
-      "$STARTED_UTC" "$END_LOCAL" "$TZ_LOCAL" "$END_EPOCH" "$SLEEP_BETWEEN" "$ROOT" "$ACTIVE_PID" "$NOW_UTC" > "$STATE_FILE"
-    echo "[supervisor] active run detected (pid=$ACTIVE_PID), sleeping $SLEEP_BETWEEN s"
+    printf '{"startedUtc":"%s","targetEndLocal":"%s %s","endEpoch":%s,"sleepBetweenSeconds":%s,"root":"%s","lastStatus":"waiting-active","activePid":%s,"activeProcessType":"%s","updatedUtc":"%s"}\n' \
+      "$STARTED_UTC" "$END_LOCAL" "$TZ_LOCAL" "$END_EPOCH" "$SLEEP_BETWEEN" "$ROOT" "$ACTIVE_PID" "$ACTIVE_KIND" "$NOW_UTC" > "$STATE_FILE"
+    echo "[supervisor] active run detected: pid=$ACTIVE_PID process=$ACTIVE_KIND, sleeping $SLEEP_BETWEEN s"
     sleep "$SLEEP_BETWEEN"
     continue
   fi

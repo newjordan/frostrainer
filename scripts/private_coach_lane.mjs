@@ -162,15 +162,37 @@ function fmt(value, digits = 3) {
   return Number(value || 0).toFixed(digits);
 }
 
+function slugify(value) {
+  return String(value || 'coach')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'coach';
+}
+
 function loadHarnessReport(outDir, runPrefix) {
-  const jsonPath = join(outDir, `${runPrefix}_coach_report.json`);
+  const rawPrefix = String(runPrefix || '');
+  const slugifiedPrefix = slugify(rawPrefix);
+  const rawJsonPath = join(outDir, `${rawPrefix}_coach_report.json`);
+  const slugifiedJsonPath = join(outDir, `${slugifiedPrefix}_coach_report.json`);
+
+  let jsonPath = rawJsonPath;
+  let resolvedPrefix = rawPrefix;
+
   if (!existsSync(jsonPath)) {
-    fail(`Expected harness report not found: ${jsonPath}`);
+    jsonPath = slugifiedJsonPath;
+    resolvedPrefix = slugifiedPrefix;
   }
+
+  if (!existsSync(jsonPath)) {
+    fail(
+      `Expected harness report not found. Tried: ${rawJsonPath}; ${slugifiedJsonPath}`,
+    );
+  }
+
   const report = JSON.parse(readFileSync(jsonPath, 'utf8'));
   return {
     jsonPath,
-    mdPath: join(outDir, `${runPrefix}_coach_report.md`),
+    mdPath: join(outDir, `${resolvedPrefix}_coach_report.md`),
     report,
     score: scoreFromSummary(report.summary),
   };

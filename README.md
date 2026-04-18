@@ -191,9 +191,17 @@ node scripts/fireturd_one_pass.mjs \
   --max-ply-miss 240
 ```
 
-Run the overnight supervisor loop:
+Run the overnight supervisor loop (revolving-door mode):
 
 ```bash
+bash scripts/fireturd_overnight_supervisor.sh
+```
+
+Example dry run for 2 cycles with reduced passes:
+
+```bash
+MAX_CYCLES=2 \
+FIRETURD_SUPERVISOR_ONE_PASS_ARGS='["--quick-games","1","--strict-games","2","--recheck-games","2","--miss-games","1","--max-ply-quick","60","--max-ply-strict","90","--max-ply-miss","100"]' \
 bash scripts/fireturd_overnight_supervisor.sh
 ```
 
@@ -203,6 +211,13 @@ Supervisor env vars:
 - `TZ_LOCAL` timezone for cutoff evaluation (default `America/Chicago`)
 - `SLEEP_BETWEEN` seconds between checks/runs (default `20`)
 - `ROOT` repo root path (default: auto-detected from script location)
+- `MAX_CYCLES` optional max cycle count (default `0`, means no limit besides end-window)
+- `FIRETURD_SUPERVISOR_TOMITANK` fallback opponent/coach when no ring/evolve artifacts are available
+- `FIRETURD_SUPERVISOR_COACH` coach path (defaults to tomitank)
+- `FIRETURD_SUPERVISOR_ONE_PASS_ARGS` JSON array of extra args passed to each `scripts/fireturd_one_pass.mjs` invocation
+- `FIRETURD_ONE_PASS_QUICK_GAMES`/`FIRETURD_ONE_PASS_STRICT_GAMES`/`FIRETURD_ONE_PASS_RECHECK_GAMES`/`FIRETURD_ONE_PASS_MISS_GAMES`
+- `FIRETURD_ONE_PASS_MAX_PLY_QUICK`/`FIRETURD_ONE_PASS_MAX_PLY_STRICT`/`FIRETURD_ONE_PASS_MAX_PLY_MISS`
+- `FIRETURD_ONE_PASS_TIMEOUT_MS`/`FIRETURD_ONE_PASS_COACH_TIMEOUT_MS`
 
 Promotion gate and baseline restore:
 

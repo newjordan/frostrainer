@@ -117,6 +117,53 @@ Lane outputs:
 - `<prefix>_lane_summary.json`
 - `<prefix>_lane_final.md`
 
+## Gladiator Ring Framework
+
+Create 8 named fighter presets without modifying `engines/fireturd.cjs`:
+
+```bash
+node scripts/gladiator_generate_presets.mjs --force
+```
+
+Built-in fighters:
+
+- `anvil`: calm grinder
+- `rapier`: aggressive quick-cutter
+- `sentinel`: calm defensive holder
+- `marauder`: ordering-heavy raider
+- `oracle`: bridge-heavy evaluator
+- `furnace`: hot attacking pressure bot
+- `avalanche`: time-pressure pile-driver
+- `overclock`: max-pressure berserker
+
+Run a minimal smoke round-robin (auto-lock aware, 4 fighters by default):
+
+```bash
+node scripts/gladiator_round_robin.mjs \
+  --manifest ./out/gladiator_ring/presets/gladiator_presets_manifest.json \
+  --out-dir ./out/gladiator_ring \
+  --smoke
+```
+
+Run the full round-robin:
+
+```bash
+node scripts/gladiator_round_robin.mjs \
+  --manifest ./out/gladiator_ring/presets/gladiator_presets_manifest.json \
+  --out-dir ./out/gladiator_ring \
+  --games 4 \
+  --max-ply 140
+```
+
+Output:
+
+- `out/gladiator_ring/presets/gladiator_presets_manifest.json`
+- `out/gladiator_ring/leaderboard.json`
+- `out/gladiator_ring/leaderboard.md`
+- `out/gladiator_ring/runs/*` (per-match reports and logs)
+
+The round-robin runner waits while active `coach_harness.mjs` or `scripts/fireturd_one_pass.mjs` runs are detected and never kills them.
+
 ## Fireturd Self-Improvement Loop
 
 The repo includes a durable one-pass tuner and an overnight supervisor for Fireturd.

@@ -4,6 +4,10 @@
   "description": "Portable CPU coaching harness for FEN-in, UCI-out chess engines.",
   "private": true,
   "type": "module",
+  "scripts": {
+    "tune:one-pass": "node scripts/fireturd_one_pass.mjs",
+    "tune:overnight": "bash scripts/fireturd_overnight_supervisor.sh"
+  },
   "bin": {
     "cpu-coach-harness": "./coach_harness.mjs"
   }

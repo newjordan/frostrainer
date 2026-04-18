@@ -117,6 +117,52 @@ Lane outputs:
 - `<prefix>_lane_summary.json`
 - `<prefix>_lane_final.md`
 
+## Fireturd Self-Improvement Loop
+
+The repo includes a durable one-pass tuner and an overnight supervisor for Fireturd.
+
+Run one pass:
+
+```bash
+node scripts/fireturd_one_pass.mjs
+```
+
+Common overrides:
+
+```bash
+node scripts/fireturd_one_pass.mjs \
+  --student ./engines/fireturd.cjs \
+  --opponent "/home/frosty/dev/repos/aj47/vibe-code-cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js" \
+  --coach "/home/frosty/dev/repos/aj47/vibe-code-cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js" \
+  --out-dir ./out \
+  --quick-games 2 \
+  --strict-games 6 \
+  --recheck-games 12 \
+  --miss-games 8 \
+  --max-ply-quick 120 \
+  --max-ply-strict 180 \
+  --max-ply-miss 240
+```
+
+Run the overnight supervisor loop:
+
+```bash
+bash scripts/fireturd_overnight_supervisor.sh
+```
+
+Supervisor env vars:
+
+- `END_LOCAL` target local cutoff time (default `09:00`)
+- `TZ_LOCAL` timezone for cutoff evaluation (default `America/Chicago`)
+- `SLEEP_BETWEEN` seconds between checks/runs (default `20`)
+- `ROOT` repo root path (default: auto-detected from script location)
+
+Promotion gate and baseline restore:
+
+- One-pass runs strict baseline, force-past-winner exploration, miss check, elite compression, then final rechecks.
+- Promotion happens only if the best valid recheck score is strictly better than baseline strict score.
+- If promotion fails (or a pass errors), the script restores the student engine from the pass baseline snapshot.
+
 ## Sharing
 
 The folder is intentionally self-contained:

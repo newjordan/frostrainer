@@ -22,6 +22,8 @@ Your engine should:
 
 The harness will try to compile JS engines in-process for speed. If that fails, it falls back to spawning the engine as a process.
 
+No engines are included in this repo (`engines/` is gitignored). Point the flags below at your own engine files.
+
 ## Usage
 
 From the repo root:
@@ -174,13 +176,15 @@ Run one pass:
 node scripts/fireturd_one_pass.mjs
 ```
 
+Defaults expect `engines/fireturd.cjs` as the student and `engines/tomitank.js` as the opponent and coach. Pass `--student`, `--opponent` or `--coach` to use other engines.
+
 Common overrides:
 
 ```bash
 node scripts/fireturd_one_pass.mjs \
   --student ./engines/fireturd.cjs \
-  --opponent "/home/frosty/dev/repos/aj47/vibe-code-cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js" \
-  --coach "/home/frosty/dev/repos/aj47/vibe-code-cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js" \
+  --opponent ./engines/tomitank.js \
+  --coach ./engines/tomitank.js \
   --out-dir ./out \
   --quick-games 2 \
   --strict-games 6 \
@@ -212,7 +216,7 @@ Supervisor env vars:
 - `SLEEP_BETWEEN` seconds between checks/runs (default `20`)
 - `ROOT` repo root path (default: auto-detected from script location)
 - `MAX_CYCLES` optional max cycle count (default `0`, means no limit besides end-window)
-- `FIRETURD_SUPERVISOR_TOMITANK` fallback opponent/coach when no ring/evolve artifacts are available
+- `FIRETURD_SUPERVISOR_TOMITANK` fallback opponent/coach when no ring/evolve artifacts are available (default: `./engines/tomitank.js`)
 - `FIRETURD_SUPERVISOR_COACH` coach path (defaults to tomitank)
 - `FIRETURD_SUPERVISOR_ONE_PASS_ARGS` JSON array of extra args passed to each `scripts/fireturd_one_pass.mjs` invocation
 - `FIRETURD_ONE_PASS_QUICK_GAMES`/`FIRETURD_ONE_PASS_STRICT_GAMES`/`FIRETURD_ONE_PASS_RECHECK_GAMES`/`FIRETURD_ONE_PASS_MISS_GAMES`
@@ -224,6 +228,14 @@ Promotion gate and baseline restore:
 - One-pass runs strict baseline, force-past-winner exploration, miss check, elite compression, then final rechecks.
 - Promotion happens only if the best valid recheck score is strictly better than baseline strict score.
 - If promotion fails (or a pass errors), the script restores the student engine from the pass baseline snapshot.
+
+## Tests
+
+```bash
+npm test
+```
+
+Runs perft checks against `src/dojo_chess.mjs` and an end-to-end smoke run of `coach_harness.mjs` using the small fixture engines in `test/fixtures/`.
 
 ## Sharing
 

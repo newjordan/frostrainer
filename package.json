@@ -5,8 +5,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "coach:harness": "node coach_harness.mjs",
     "tune:one-pass": "node scripts/fireturd_one_pass.mjs",
-    "tune:overnight": "bash scripts/fireturd_overnight_supervisor.sh"
+    "tune:overnight": "bash scripts/fireturd_overnight_supervisor.sh",
+    "test": "node --test test/"
   },
   "bin": {
     "cpu-coach-harness": "./coach_harness.mjs"

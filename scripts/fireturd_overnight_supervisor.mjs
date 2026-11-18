@@ -15,8 +15,7 @@ const STATE_FILE_COMPAT = path.join(OUT_DIR, 'fireturd_overnight_revolver_state.
 const LOG_FILE_PREFIX = path.join(OUT_DIR, 'fireturd_overnight_revolver');
 const ONE_PASS_SCRIPT = path.join(ROOT, 'scripts', 'fireturd_one_pass.mjs');
 
-const DEFAULT_TOMITANK = '/home/frosty/dev/repos/aj47/vibe-code-'
-  + 'cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js';
+const DEFAULT_TOMITANK = path.join(ROOT, 'engines', 'tomitank.js');
 
 const BUILD_IN_FIGHTERS = [
   'anvil',

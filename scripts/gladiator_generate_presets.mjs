@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(SCRIPT_DIR, '..');
 const DEFAULT_BASE_ENGINE = path.join(ROOT, 'engines', 'fireturd.cjs');
-const DEFAULT_OUT_DIR = path.join(ROOT, 'out', 'gladiator', 'presets');
+const DEFAULT_OUT_DIR = path.join(ROOT, 'out', 'gladiator_ring', 'presets');
 const DEFAULT_MANIFEST = path.join(DEFAULT_OUT_DIR, 'gladiator_presets_manifest.json');
 
 const KNOB_ORDER = [

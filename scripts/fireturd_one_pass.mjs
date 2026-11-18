@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(SCRIPT_DIR, '..');
-const DEFAULT_TOMITANK = '/home/frosty/dev/repos/aj47/vibe-code-cup-1-simulator/submissions/real-submissions/Deeper Blue/agent.js';
+const DEFAULT_TOMITANK = path.join(ROOT, 'engines', 'tomitank.js');
 const FRONT_KEYS = ['time', 'pruning', 'bridge', 'ordering', 'layer'];
 
 const defaults = {

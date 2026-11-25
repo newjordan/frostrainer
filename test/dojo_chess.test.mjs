@@ -30,6 +30,7 @@ test('perft matches reference node counts', () => {
     ['ep-pin', '8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1', { 1: 14, 2: 191, 3: 2812, 4: 43238 }],
     ['promotions', 'r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1', { 1: 6, 2: 264, 3: 9467 }],
     ['castling-checks', 'rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8', { 1: 44, 2: 1486, 3: 62379 }],
+    ['middlegame', 'r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10', { 1: 46, 2: 2079, 3: 89890 }],
   ];
 
   for (const [name, fen, table] of cases) {
@@ -37,6 +38,15 @@ test('perft matches reference node counts', () => {
       assert.equal(perft(parseFen(fen), Number(depth)), expected, `${name} depth ${depth}`);
     }
   }
+});
+
+test('starting position generates the standard move list', () => {
+  const moves = generateLegalMoves(parseFen(START_FEN)).slice().sort();
+  assert.deepEqual(moves, [
+    'a2a3', 'a2a4', 'b1a3', 'b1c3', 'b2b3', 'b2b4', 'c2c3', 'c2c4',
+    'd2d3', 'd2d4', 'e2e3', 'e2e4', 'f2f3', 'f2f4', 'g1f3', 'g1h3',
+    'g2g3', 'g2g4', 'h2h3', 'h2h4',
+  ]);
 });
 
 test('FEN round trip preserves position', () => {

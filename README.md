@@ -4,6 +4,54 @@ Portable CPU coaching harness for chess engines that accept a FEN on `stdin` and
 
 This package is meant to be shareable. It is not tied to FrostD4D weight injection or GPU forge code. It runs games, reviews losses with a coach engine, and emits lesson reports in JSON and Markdown.
 
+## Quick Start
+
+Requires Node.js 22 or newer. The harness has no third-party dependencies.
+
+```bash
+npm install
+npm test
+```
+
+`npm test` runs move-generation perft, position-evaluation checks, a headless self-play smoke match, and the coaching harness smoke test.
+
+Coach the built-in fixture engines and write a report into `./out`:
+
+```bash
+node coach_harness.mjs \
+  --student student=test/fixtures/blunder_engine.mjs \
+  --opponent foe=test/fixtures/last_legal_engine.mjs \
+  --coach coach=test/fixtures/last_legal_engine.mjs \
+  --games 2 \
+  --cycles 1 \
+  --max-ply 60 \
+  --student-mode spawn \
+  --opponent-mode spawn \
+  --coach-mode spawn \
+  --out-dir ./out \
+  --prefix quickstart
+```
+
+That writes `out/quickstart_coach_report.json` and `out/quickstart_coach_report.md`.
+
+Run a headless self-play match with the same fixture contract. The first-legal engine plays White in game 1 and Black in game 2:
+
+```bash
+node coach_harness.mjs \
+  --student white=test/fixtures/first_legal_engine.mjs \
+  --opponent black=test/fixtures/last_legal_engine.mjs \
+  --coach coach=test/fixtures/first_legal_engine.mjs \
+  --games 2 \
+  --max-ply 40 \
+  --student-mode spawn \
+  --opponent-mode spawn \
+  --coach-mode spawn \
+  --out-dir ./out \
+  --prefix selfplay
+```
+
+Point `--student`, `--opponent`, and `--coach` at your own FEN-in, UCI-out engines when you are ready to train. No engines are shipped in this repo (`engines/` is gitignored).
+
 ## What It Does
 
 - Runs a student engine against one or more CPU opponents.
@@ -235,7 +283,14 @@ Promotion gate and baseline restore:
 npm test
 ```
 
-Runs perft checks against `src/dojo_chess.mjs` and an end-to-end smoke run of `coach_harness.mjs` using the small fixture engines in `test/fixtures/`.
+The suite checks:
+
+- legal move generation against the standard perft positions (start position, Kiwipete, en-passant pin, promotions, castling checks, and the middlegame mirror) and their published node counts
+- material evaluation of those positions, including capture, en-passant, and promotion deltas
+- a headless self-play smoke match, in process and through `coach_harness.mjs`
+- an end-to-end coaching run using the fixture engines in `test/fixtures/`
+
+GitHub Actions runs the same command on the supported Node.js lines: 22, 24, and 26.
 
 ## Sharing
 
@@ -243,6 +298,7 @@ The folder is intentionally self-contained:
 
 - `coach_harness.mjs`
 - `src/dojo_chess.mjs`
+- `src/dojo_eval.mjs`
 - `src/dojo_runtime.mjs`
 - `package.json`
 
